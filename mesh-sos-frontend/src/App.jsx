@@ -14,17 +14,21 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import './App.css';
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+function ProtectedRoute({ children, requireAdmin }) {
+  const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (requireAdmin && user?.role !== 'ADMIN') {
+    return <Navigate to="/" replace />;
   }
   return children;
 }
 
 function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <>
@@ -43,12 +47,16 @@ function AppContent() {
             
             <main className="main-content">
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/sos-list" element={<SosList />} />
+                {/* User & Admin Routes */}
+                <Route path="/" element={isAdmin ? <Dashboard /> : <Dashboard isUserDashboard />} />
                 <Route path="/create" element={<CreateSos />} />
                 <Route path="/sos/:id" element={<SosDetails />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/settings" element={<Settings />} />
+                
+                {/* Admin Only Routes */}
+                {isAdmin && <Route path="/sos-list" element={<SosList />} />}
+                {isAdmin && <Route path="/analytics" element={<Analytics />} />}
+                {isAdmin && <Route path="/settings" element={<Settings />} />}
+                
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>

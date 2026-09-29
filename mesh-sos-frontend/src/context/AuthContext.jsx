@@ -5,15 +5,31 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const token = localStorage.getItem('mesh_admin_token');
-        if (token) {
+    const loadUser = async () => {
+        try {
+            const res = await apiClient.get('/api/v1/auth/me');
+            setUser(res.data);
             setIsAuthenticated(true);
-            apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        } catch (err) {
+            console.error('Failed to load user', err);
+            setIsAuthenticated(false);
+            setUser(null);
+            localStorage.removeItem('mesh_auth_token');
         }
         setLoading(false);
+    };
+
+    useEffect(() => {
+        const token = localStorage.getItem('mesh_auth_token');
+        if (token) {
+            apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            loadUser();
+        } else {
+            setLoading(false);
+        }
     }, []);
 
     const login = async (username, password) => {
@@ -23,15 +39,14 @@ export const AuthProvider = ({ children }) => {
             formData.append('password', password);
             
             const response = await apiClient.post('/api/v1/auth/login', formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
             });
             
             const { access_token } = response.data;
-            localStorage.setItem('mesh_admin_token', access_token);
+            localStorage.setItem('mesh_auth_token', access_token);
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-            setIsAuthenticated(true);
+            
+            await loadUser();
             return true;
         } catch (error) {
             console.error('Login failed', error);
@@ -39,10 +54,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const register = async (userData) => {
+        try {
+            await apiClient.post('/api/v1/auth/register', userData);
+            return await login(userData.username, userData.password);
+        } catch (error) {
+            console.error('Registration failed', error);
+            return false;
+        }
+    };
+
     const logout = () => {
-        localStorage.removeItem('mesh_admin_token');
+        localStorage.removeItem('mesh_auth_token');
         delete apiClient.defaults.headers.common['Authorization'];
         setIsAuthenticated(false);
+        setUser(null);
     };
 
     if (loading) {
@@ -50,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );

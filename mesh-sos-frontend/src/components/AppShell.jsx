@@ -7,12 +7,15 @@ import { useAuth } from '../context/AuthContext';
 import '../App.css'; // Relies on App.css styles
 
 export function Sidebar({ mobileOpen, setMobileOpen }) {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
+
     const navItems = [
-        { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/sos-list', icon: List, label: 'SOS List' },
+        ...(isAdmin ? [{ path: '/', icon: LayoutDashboard, label: 'Dashboard' }] : [{ path: '/', icon: LayoutDashboard, label: 'My SOS' }]),
+        ...(isAdmin ? [{ path: '/sos-list', icon: List, label: 'All SOS' }] : []),
         { path: '/create', icon: PlusCircle, label: 'Create SOS' },
-        { path: '/analytics', icon: BarChart2, label: 'Analytics' },
-        { path: '/settings', icon: Settings, label: 'Settings' }
+        ...(isAdmin ? [{ path: '/analytics', icon: BarChart2, label: 'Analytics' }] : []),
+        ...(isAdmin ? [{ path: '/settings', icon: Settings, label: 'Settings' }] : [])
     ];
 
     return (
@@ -49,12 +52,13 @@ export function TopBar({ setMobileOpen }) {
     const notifRef = useRef(null);
     const avatarRef = useRef(null);
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
 
     // Fetch notifications
     const fetchNotifications = async () => {
         try {
-            const data = await sosAPI.getAll(24, 50); // Get last 24 hrs
+            const data = isAdmin ? await sosAPI.getAll(24, 50) : await sosAPI.getMySos();
             const notifs = data.map(sos => {
                 const isPending = sos.status === 'PENDING' || sos.status === 'RELAYED';
                 let icon = ShieldAlert;
@@ -223,16 +227,16 @@ export function TopBar({ setMobileOpen }) {
                     aria-label="User Profile"
                     aria-expanded={isAvatarOpen}
                 >
-                    A
+                    {user?.name?.[0]?.toUpperCase() || 'U'}
                 </button>
                 
                 {isAvatarOpen && (
                     <div className="header-dropdown avatar-dropdown fade-in">
                         <div className="dropdown-user-info">
-                            <div className="avatar-lg">A</div>
+                            <div className="avatar-lg">{user?.name?.[0]?.toUpperCase() || 'U'}</div>
                             <div className="user-details">
-                                <div className="user-name">Akash Prajapati</div>
-                                <div className="user-role">Administrator</div>
+                                <div className="user-name">{user?.name || 'User'}</div>
+                                <div className="user-role">{user?.role || 'USER'}</div>
                             </div>
                         </div>
                         <div className="dropdown-divider"></div>

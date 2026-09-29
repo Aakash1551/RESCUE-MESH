@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db, SessionLocal
 from .routes import sos, auth
-from .models import UserDB
+from .models import UserDB, UserRole
 from .routes.auth import get_password_hash
 import os
 
@@ -24,13 +24,20 @@ async def lifespan(app: FastAPI):
     try:
         admin_username = os.getenv("ADMIN_USERNAME", "admin")
         admin_password = os.getenv("ADMIN_PASSWORD", "admin")
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@meshsos.local")
         existing_admin = db.query(UserDB).filter(UserDB.username == admin_username).first()
         if not existing_admin:
             hashed = get_password_hash(admin_password)
-            new_admin = UserDB(username=admin_username, hashed_password=hashed)
+            new_admin = UserDB(
+                name="System Admin",
+                username=admin_username, 
+                email=admin_email,
+                hashed_password=hashed,
+                role=UserRole.ADMIN
+            )
             db.add(new_admin)
             db.commit()
-            print(f"Default admin user '{admin_username}' seeded.")
+            print(f"Default admin user '{admin_username}' seeded. IMPORTANT: Change default password in production!")
     finally:
         db.close()
         

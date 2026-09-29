@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from ..database import get_db
-from ..models import UserDB, Token, TokenData, UserResponse
+from ..models import UserDB, Token, TokenData, UserResponse, UserCreate, UserRole
 
 # Security configurations
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7") # Fallback for dev only
@@ -61,6 +61,11 @@ async def get_current_active_user(current_user: UserDB = Depends(get_current_use
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+async def get_current_active_admin(current_user: UserDB = Depends(get_current_active_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
+    return current_user
+
 @router.post("/login", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(UserDB).filter(UserDB.username == form_data.username).first()
@@ -79,3 +84,28 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: UserDB = Depends(get_current_active_user)):
     return current_user
+
+@router.post("/register", response_model=UserResponse)
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if username or email exists
+    existing_user = db.query(UserDB).filter(
+        (UserDB.username == user.username) | (UserDB.email == user.email)
+    ).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already registered"
+        )
+    
+    hashed_password = get_password_hash(user.password)
+    db_user = UserDB(
+        name=user.name,
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        role=UserRole.USER
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user

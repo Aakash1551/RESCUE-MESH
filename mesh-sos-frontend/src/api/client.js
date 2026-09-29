@@ -14,7 +14,7 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            localStorage.removeItem('mesh_admin_token');
+            localStorage.removeItem('mesh_auth_token');
             window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -37,10 +37,15 @@ export const sosAPI = {
     // Get active SOS cases only
     getActive: async () => {
         const response = await apiClient.get('/api/v1/active-sos', {
-            params: {
-                hours: 24,
-                limit: 100
-            }
+            params: { hours: 24, limit: 100 }
+        });
+        return response.data.sos_packets || [];
+    },
+
+    // Get SOS created by user
+    getMySos: async () => {
+        const response = await apiClient.get('/api/v1/my-sos', {
+            params: { hours: 720, limit: 100 }
         });
         return response.data.sos_packets || [];
     },

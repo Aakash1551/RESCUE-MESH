@@ -6,8 +6,9 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import Column, String, Float, Integer, DateTime, Enum as SQLEnum, Text, Boolean
+from pydantic import BaseModel, Field, field_validator, EmailStr
+from sqlalchemy import Column, String, Float, Integer, DateTime, Enum as SQLEnum, Text, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from .database import Base
@@ -22,6 +23,11 @@ class EmergencyType(str, Enum):
     FLOOD = "FLOOD"
     EARTHQUAKE = "EARTHQUAKE"
     GENERAL = "GENERAL"
+
+class UserRole(str, Enum):
+    """User Roles"""
+    USER = "USER"
+    ADMIN = "ADMIN"
 
 
 class DeliveryStatus(str, Enum):
@@ -74,16 +80,26 @@ class SosPacketDB(Base):
     
     # Relay tracking
     uploaded_by_device_id = Column(String(64), nullable=True)
+    
+    # Ownership
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user = relationship("UserDB", back_populates="sos_packets")
 
 
 class UserDB(Base):
-    """SQLAlchemy model for Admin Users"""
+    """SQLAlchemy model for Users"""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(128), nullable=False)
     username = Column(String(64), unique=True, index=True, nullable=False)
+    email = Column(String(128), unique=True, index=True, nullable=False)
     hashed_password = Column(String(128), nullable=False)
+    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.USER)
     is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    sos_packets = relationship("SosPacketDB", back_populates="user")
 
 
 # ============ Pydantic Schemas ============
@@ -128,6 +144,7 @@ class SosPacketResponse(BaseModel):
     status: DeliveryStatus
     received_at: datetime
     responded_at: Optional[datetime] = None
+    user_id: Optional[int] = None
     
     model_config = {
         "from_attributes": True,
@@ -168,9 +185,18 @@ class TokenData(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
+    name: str
     username: str
+    email: str
+    role: UserRole
     is_active: bool
     
     model_config = {
         "from_attributes": True
     }
+
+class UserCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=128)
+    username: str = Field(..., min_length=3, max_length=64)
+    email: EmailStr
+    password: str = Field(..., min_length=8)

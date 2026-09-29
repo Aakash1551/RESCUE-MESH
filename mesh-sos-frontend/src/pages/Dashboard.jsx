@@ -16,7 +16,7 @@ const EMERGENCY_CONFIG = {
     GENERAL: { color: '#E5091A' },
 };
 
-export default function Dashboard() {
+export default function Dashboard({ isUserDashboard = false }) {
     const [activeSOS, setActiveSOS] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -26,8 +26,8 @@ export default function Dashboard() {
     const fetchData = async (silent = false) => {
         try {
             const [sosData, statsData] = await Promise.all([
-                sosAPI.getActive(),
-                sosAPI.getStats()
+                isUserDashboard ? sosAPI.getMySos() : sosAPI.getActive(),
+                isUserDashboard ? Promise.resolve(null) : sosAPI.getStats()
             ]);
             setActiveSOS(sosData);
             setStats(statsData);
@@ -66,9 +66,9 @@ export default function Dashboard() {
             <div className="dashboard-header-row">
                 <div className="title-section">
                     <h1>
-                        <span className="text-white">Emergency</span> <span className="text-primary">Dashboard</span>
+                        <span className="text-white">{isUserDashboard ? 'My' : 'Emergency'}</span> <span className="text-primary">Dashboard</span>
                     </h1>
-                    <p className="text-secondary">Real-time monitoring of mesh network SOS signals</p>
+                    <p className="text-secondary">{isUserDashboard ? 'Manage your SOS signals' : 'Real-time monitoring of mesh network SOS signals'}</p>
                 </div>
                 <div className="system-status-pill">
                     <div className="live-indicator">
@@ -84,6 +84,16 @@ export default function Dashboard() {
             <div className="stats-grid">
                 {loading ? (
                     Array(4).fill(0).map((_, i) => <div key={i} className="skeleton-box" style={{ height: 120 }}></div>)
+                ) : isUserDashboard ? (
+                    <>
+                        <StatusCard
+                            icon={AlertCircle}
+                            label="My SOS Signals"
+                            value={activeSOS.length}
+                            color="var(--status-emergency)"
+                            subtext="Your submitted alerts"
+                        />
+                    </>
                 ) : (
                     <>
                         <StatusCard
@@ -134,12 +144,12 @@ export default function Dashboard() {
             <div className="card active-emergencies-card">
                 <div className="card-header space-between">
                     <div className="flex items-center gap-3">
-                        <h2>Active Emergencies</h2>
+                        <h2>{isUserDashboard ? 'My Signals' : 'Active Emergencies'}</h2>
                         {!loading && activeSOS.length > 0 && (
                             <span className="badge-count">{activeSOS.length}</span>
                         )}
                     </div>
-                    <Link to="/sos-list" className="link-view-all text-sm">View All &rarr;</Link>
+                    {!isUserDashboard && <Link to="/sos-list" className="link-view-all text-sm">View All &rarr;</Link>}
                 </div>
                 
                 <div className="card-body">
@@ -178,12 +188,14 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                         <div className="row-actions">
-                                            <button 
-                                                className="btn-mark"
-                                                onClick={(e) => handleMarkResponded(e, sos.sos_id)}
-                                            >
-                                                Mark Responded
-                                            </button>
+                                            {!isUserDashboard && (
+                                                <button 
+                                                    className="btn-mark"
+                                                    onClick={(e) => handleMarkResponded(e, sos.sos_id)}
+                                                >
+                                                    Mark Responded
+                                                </button>
+                                            )}
                                             <ChevronRight size={20} className="text-muted" />
                                         </div>
                                     </div>
