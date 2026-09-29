@@ -1,43 +1,44 @@
-// Main App Component with React Router
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
+import { Toaster } from 'sonner';
+
+import { Sidebar, TopBar } from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import SosList from './pages/SosList';
 import CreateSos from './pages/CreateSos';
-import { sosAPI } from './api/client';
+import SosDetails from './pages/SosDetails';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
+
+import './App.css';
 
 function App() {
-  const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await sosAPI.getStats();
-        setStats(data);
-      } catch (err) {
-        console.error('Error fetching stats:', err);
-      }
-    };
-
-    fetchStats();
-    const interval = setInterval(fetchStats, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <Router>
-      <div className="app">
-        <Header stats={stats} />
-        <main>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/sos-list" element={<SosList />} />
-            <Route path="/create" element={<CreateSos />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <>
+      <Toaster theme="dark" position="bottom-right" richColors />
+      <Router>
+        <div className="app-layout">
+          <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+          
+          <div className="main-wrapper">
+            <TopBar setMobileOpen={setMobileOpen} />
+            
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/sos-list" element={<SosList />} />
+                <Route path="/create" element={<CreateSos />} />
+                <Route path="/sos/:id" element={<SosDetails />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/settings" element={<Settings />} />
+              </Routes>
+            </main>
+          </div>
+        </div>
+      </Router>
+    </>
   );
 }
 

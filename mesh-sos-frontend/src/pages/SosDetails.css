@@ -1,0 +1,130 @@
+.sos-details-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  animation: fade-in 0.3s ease-out;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  width: fit-content;
+}
+.back-link:hover {
+  color: var(--text-primary);
+}
+
+.details-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.badge-lg {
+  font-size: 0.9rem;
+  padding: 6px 14px;
+}
+
+.btn-mark-responded {
+  background: var(--primary);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.btn-mark-responded:hover:not(:disabled) {
+  background: #C40817;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: var(--spacing-4);
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.info-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.message-section {
+  padding: var(--spacing-4);
+}
+
+.message-box {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-color);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.message-box.empty {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.details-map-container {
+  height: 500px;
+  width: 100%;
+}
+
+.details-loading, .details-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.font-semibold { font-weight: 600; }
+.mb-2 { margin-bottom: 8px; }
+
+@media (max-width: 1024px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+  .details-map-container {
+    height: 400px;
+  }
+}

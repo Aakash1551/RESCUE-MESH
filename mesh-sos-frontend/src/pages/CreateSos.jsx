@@ -1,144 +1,224 @@
-// Create SOS Page - Manual SOS creation form
-import { useState } from 'react';
-import { AlertCircle, MapPin, MessageSquare } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { MapPin, MessageSquare, Battery, Activity, Flame, Droplets, Mountain, ShieldAlert, Navigation, Send, ChevronDown } from 'lucide-react';
+import { toast } from 'sonner';
 import { sosAPI } from '../api/client';
 import './CreateSos.css';
 
-const emergencyTypes = ['MEDICAL', 'FIRE', 'FLOOD', 'EARTHQUAKE', 'GENERAL'];
+const EMERGENCY_TYPES = [
+    { id: 'GENERAL', label: 'General Emergency', icon: ShieldAlert, color: '#E5091A' },
+    { id: 'MEDICAL', label: 'Medical Emergency', icon: Activity, color: '#06B6D4' },
+    { id: 'FIRE', label: 'Fire', icon: Flame, color: '#F97316' },
+    { id: 'FLOOD', label: 'Flood', icon: Droplets, color: '#3B82F6' },
+    { id: 'EARTHQUAKE', label: 'Earthquake', icon: Mountain, color: '#8B5CF6' },
+];
 
 export default function CreateSos() {
     const [formData, setFormData] = useState({
         emergency_type: 'GENERAL',
-        latitude: 0,
-        longitude: 0,
+        latitude: '',
+        longitude: '',
         battery_percentage: 100,
         optional_message: '',
     });
     const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [error, setError] = useState(null);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    
+    const dropdownRef = useRef(null);
+    const MAX_CHARS = 500;
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const selectedType = EMERGENCY_TYPES.find(t => t.id === formData.emergency_type);
+    const SelectedIcon = selectedType.icon;
+
+    const handleUseMyLocation = () => {
+        if ('geolocation' in navigator) {
+            toast.info('Acquiring coordinates...');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setFormData(prev => ({ 
+                        ...prev, 
+                        latitude: pos.coords.latitude.toFixed(6), 
+                        longitude: pos.coords.longitude.toFixed(6) 
+                    }));
+                    toast.success('Location updated');
+                },
+                (err) => {
+                    toast.error('Location access denied');
+                }
+            );
+        } else {
+            toast.error('Geolocation not supported');
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!formData.latitude || !formData.longitude) {
+            toast.error('Please provide latitude and longitude');
+            return;
+        }
+
         setLoading(true);
-        setError(null);
 
         try {
-            await sosAPI.create(formData);
-            setSuccess(true);
-            setTimeout(() => {
-                setSuccess(false);
-                setFormData({
-                    emergency_type: 'GENERAL',
-                    latitude: 0,
-                    longitude: 0,
-                    battery_percentage: 100,
-                    optional_message: '',
-                });
-            }, 3000);
+            await sosAPI.create({
+                ...formData,
+                latitude: parseFloat(formData.latitude),
+                longitude: parseFloat(formData.longitude)
+            });
+            toast.success('SOS signal created successfully');
+            setFormData({
+                emergency_type: 'GENERAL',
+                latitude: '',
+                longitude: '',
+                battery_percentage: 100,
+                optional_message: '',
+            });
         } catch (err) {
-            setError('Failed to create SOS. Please try again.');
+            toast.error('Failed to create SOS. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="create-sos">
-            <div className="create-sos-header">
+        <div className="create-sos-page">
+            <div className="page-header center">
                 <h1>Create Manual SOS</h1>
                 <p className="text-secondary">Testing & administrative SOS creation</p>
             </div>
 
-            {success && (
-                <div className="alert alert-success">
-                    <AlertCircle />
-                    <span>SOS signal created successfully!</span>
-                </div>
-            )}
-
-            {error && (
-                <div className="alert alert-error">
-                    <AlertCircle />
-                    <span>{error}</span>
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="sos-form">
-                <div className="form-group">
-                    <label>Emergency Type</label>
-                    <select
-                        value={formData.emergency_type}
-                        onChange={(e) => setFormData({ ...formData, emergency_type: e.target.value })}
-                        required
-                    >
-                        {emergencyTypes.map((type) => (
-                            <option key={type} value={type}>
-                                {type}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>
-                            <MapPin size={16} />
-                            Latitude
-                        </label>
-                        <input
-                            type="number"
-                            step="0.000001"
-                            value={formData.latitude}
-                            onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-                            required
-                        />
+            <div className="form-card-container">
+                <form onSubmit={handleSubmit} className="card create-form">
+                    
+                    {/* Emergency Type Custom Select */}
+                    <div className="form-field" ref={dropdownRef}>
+                        <label>Emergency Type</label>
+                        <div 
+                            className="custom-select"
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            tabIndex={0}
+                        >
+                            <div className="select-value">
+                                <SelectedIcon size={18} color={selectedType.color} />
+                                <span>{selectedType.label}</span>
+                            </div>
+                            <ChevronDown size={18} className="text-muted" />
+                        </div>
+                        {isDropdownOpen && (
+                            <div className="select-dropdown">
+                                {EMERGENCY_TYPES.map(type => {
+                                    const Icon = type.icon;
+                                    return (
+                                        <div 
+                                            key={type.id} 
+                                            className="select-option"
+                                            onClick={() => {
+                                                setFormData(prev => ({ ...prev, emergency_type: type.id }));
+                                                setIsDropdownOpen(false);
+                                            }}
+                                        >
+                                            <Icon size={18} color={type.color} />
+                                            <span>{type.label}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="form-group">
-                        <label>
-                            <MapPin size={16} />
-                            Longitude
-                        </label>
-                        <input
-                            type="number"
-                            step="0.000001"
-                            value={formData.longitude}
-                            onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-                            required
-                        />
+                    {/* Coordinates */}
+                    <div className="form-row">
+                        <div className="form-field">
+                            <label>Latitude</label>
+                            <div className="input-with-icon">
+                                <MapPin size={18} className="input-icon" />
+                                <input
+                                    type="number"
+                                    step="0.000001"
+                                    placeholder="0.000000"
+                                    value={formData.latitude}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="form-field">
+                            <label className="space-between">
+                                Longitude
+                                <button type="button" className="btn-link" onClick={handleUseMyLocation}>
+                                    <Navigation size={12} /> Use location
+                                </button>
+                            </label>
+                            <div className="input-with-icon">
+                                <MapPin size={18} className="input-icon" />
+                                <input
+                                    type="number"
+                                    step="0.000001"
+                                    placeholder="0.000000"
+                                    value={formData.longitude}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div className="form-group">
-                    <label>Battery Percentage</label>
-                    <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.battery_percentage}
-                        onChange={(e) => setFormData({ ...formData, battery_percentage: parseInt(e.target.value) })}
-                        required
-                    />
-                </div>
+                    {/* Battery */}
+                    <div className="form-field">
+                        <label>Battery Percentage</label>
+                        <div className="input-with-icon right-suffix">
+                            <Battery size={18} className="input-icon" />
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={formData.battery_percentage}
+                                onChange={(e) => setFormData(prev => ({ ...prev, battery_percentage: parseInt(e.target.value) || 0 }))}
+                                required
+                            />
+                            <span className="input-suffix">%</span>
+                        </div>
+                    </div>
 
-                <div className="form-group">
-                    <label>
-                        <MessageSquare size={16} />
-                        Optional Message
-                    </label>
-                    <textarea
-                        rows="4"
-                        value={formData.optional_message}
-                        onChange={(e) => setFormData({ ...formData, optional_message: e.target.value })}
-                        placeholder="Additional details about the emergency..."
-                    />
-                </div>
+                    {/* Message */}
+                    <div className="form-field">
+                        <label>Optional Message</label>
+                        <div className="input-with-icon align-top">
+                            <MessageSquare size={18} className="input-icon" style={{ marginTop: '12px' }} />
+                            <textarea
+                                rows="4"
+                                maxLength={MAX_CHARS}
+                                placeholder="Describe the situation..."
+                                value={formData.optional_message}
+                                onChange={(e) => setFormData(prev => ({ ...prev, optional_message: e.target.value }))}
+                            ></textarea>
+                            <div className="char-counter">
+                                {formData.optional_message.length}/{MAX_CHARS}
+                            </div>
+                        </div>
+                    </div>
 
-                <button type="submit" className="btn btn-primary btn-large" disabled={loading}>
-                    {loading ? 'Creating SOS...' : 'Create SOS'}
-                </button>
-            </form>
+                    <button type="submit" className="btn-submit-sos" disabled={loading}>
+                        {loading ? <span className="spinner"></span> : (
+                            <>
+                                <Send size={20} />
+                                Create SOS
+                            </>
+                        )}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }

@@ -12,12 +12,12 @@ const apiClient = axios.create({
 
 // SOS API endpoints
 export const sosAPI = {
-    // Get all SOS packets (use active-sos endpoint for now)
-    getAll: async () => {
-        const response = await apiClient.get('/api/v1/active-sos', {
+    // Get all SOS packets (including responded)
+    getAll: async (hours = 168, limit = 5000) => {
+        const response = await apiClient.get('/api/v1/all-sos', {
             params: {
-                hours: 168, // 7 days
-                limit: 500
+                hours: hours,
+                limit: limit
             }
         });
         return response.data.sos_packets || [];
@@ -56,6 +56,12 @@ export const sosAPI = {
         return response.data;
     },
 
+    // Get SOS by ID
+    getById: async (id) => {
+        const response = await apiClient.get(`/api/v1/sos/${id}`);
+        return response.data;
+    },
+
     // Update SOS status (mark as responded)
     updateStatus: async (sosId, status) => {
         const response = await apiClient.post('/api/v1/mark-responded', {
@@ -65,11 +71,11 @@ export const sosAPI = {
         return response.data;
     },
 
-    // Get network stats (calculated from active SOS)
+    // Get network stats (calculated from all SOS)
     getStats: async () => {
         try {
-            const response = await apiClient.get('/api/v1/active-sos', {
-                params: { hours: 168, limit: 500 }
+            const response = await apiClient.get('/api/v1/all-sos', {
+                params: { hours: 168, limit: 1000 }
             });
             const allPackets = response.data.sos_packets || [];
             const activePackets = allPackets.filter(p => p.status !== 'RESPONDED');

@@ -56,7 +56,7 @@ async def upload_sos(
         hop_count=packet.hop_count,
         ttl=packet.ttl,
         signature=packet.signature,
-        status=DeliveryStatus.DELIVERED,
+        status=DeliveryStatus.PENDING,
         received_at=datetime.utcnow()
     )
     
@@ -74,8 +74,8 @@ async def upload_sos(
 @router.get("/active-sos", response_model=ActiveSosResponse)
 async def get_active_sos(
     db: Session = Depends(get_db),
-    hours: int = Query(24, ge=1, le=168),
-    limit: int = Query(100, ge=1, le=500)
+    hours: int = Query(24, ge=1, le=720),
+    limit: int = Query(100, ge=1, le=5000)
 ):
     """Get all active (non-responded) SOS packets."""
     time_threshold = datetime.utcnow() - timedelta(hours=hours)
@@ -93,6 +93,27 @@ async def get_active_sos(
         count=len(response_packets),
         sos_packets=response_packets
     )
+
+@router.get("/all-sos", response_model=ActiveSosResponse)
+async def get_all_sos(
+    db: Session = Depends(get_db),
+    hours: int = Query(168, ge=1, le=720),
+    limit: int = Query(1000, ge=1, le=5000)
+):
+    """Get ALL SOS packets (including responded) for analytics/history."""
+    time_threshold = datetime.utcnow() - timedelta(hours=hours)
+    
+    packets = db.query(SosPacketDB).filter(
+        SosPacketDB.received_at >= time_threshold
+    ).order_by(SosPacketDB.timestamp.desc()).limit(limit).all()
+    
+    response_packets = [SosPacketResponse.model_validate(p) for p in packets]
+    
+    return ActiveSosResponse(
+        count=len(response_packets),
+        sos_packets=response_packets
+    )
+
 
 
 @router.post("/mark-responded", response_model=UploadResponse)

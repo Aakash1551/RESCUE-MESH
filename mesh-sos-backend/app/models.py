@@ -67,7 +67,7 @@ class SosPacketDB(Base):
     signature = Column(String(64), nullable=True)
     
     # Server-side tracking
-    status = Column(SQLEnum(DeliveryStatus), nullable=False, default=DeliveryStatus.DELIVERED)
+    status = Column(SQLEnum(DeliveryStatus), nullable=False, default=DeliveryStatus.PENDING)
     received_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     responded_at = Column(DateTime, nullable=True)
     responder_id = Column(String(64), nullable=True)

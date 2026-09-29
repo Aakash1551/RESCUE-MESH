@@ -12,11 +12,11 @@ from .routes import sos
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler"""
-    print("🚀 Starting MeshSOS Backend...")
+    print("Starting MeshSOS Backend...")
     init_db()
-    print("✅ Database initialized")
+    print("Database initialized")
     yield
-    print("👋 Shutting down...")
+    print("Shutting down...")
 
 
 app = FastAPI(
