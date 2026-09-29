@@ -7,7 +7,7 @@ python-dotenv
 slowapi
 pytest
 httpx
-PyJWT
-passlib[bcrypt]
+python-jose[cryptography]
+pwdlib[argon2]
 python-multipart
 email-validator

@@ -22,11 +22,18 @@ async def lifespan(app: FastAPI):
     # Seed default admin user if not exists
     db = SessionLocal()
     try:
-        admin_username = os.getenv("ADMIN_USERNAME", "admin")
-        admin_password = os.getenv("ADMIN_PASSWORD", "admin")
+        admin_username = os.getenv("ADMIN_USERNAME")
+        admin_password = os.getenv("ADMIN_PASSWORD")
         admin_email = os.getenv("ADMIN_EMAIL", "admin@meshsos.local")
-        existing_admin = db.query(UserDB).filter(UserDB.username == admin_username).first()
+
+        existing_admin = db.query(UserDB).filter(UserDB.role == UserRole.ADMIN).first()
         if not existing_admin:
+            if not admin_username or not admin_password:
+                missing = []
+                if not admin_username: missing.append("ADMIN_USERNAME")
+                if not admin_password: missing.append("ADMIN_PASSWORD")
+                raise RuntimeError(f"Missing required environment variables for initial admin setup: {', '.join(missing)}")
+
             hashed = get_password_hash(admin_password)
             new_admin = UserDB(
                 name="System Admin",
