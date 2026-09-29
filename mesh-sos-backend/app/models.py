@@ -76,6 +76,16 @@ class SosPacketDB(Base):
     uploaded_by_device_id = Column(String(64), nullable=True)
 
 
+class UserDB(Base):
+    """SQLAlchemy model for Admin Users"""
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(64), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(128), nullable=False)
+    is_active = Column(Boolean, default=True)
+
+
 # ============ Pydantic Schemas ============
 
 class SosPacketCreate(BaseModel):
@@ -147,3 +157,20 @@ class ActiveSosResponse(BaseModel):
     """Response containing list of active SOS packets"""
     count: int
     sos_packets: list[SosPacketResponse]
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    is_active: bool
+    
+    model_config = {
+        "from_attributes": True
+    }

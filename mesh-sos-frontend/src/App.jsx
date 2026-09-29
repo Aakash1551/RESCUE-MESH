@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { Sidebar, TopBar } from './components/AppShell';
@@ -9,16 +9,32 @@ import CreateSos from './pages/CreateSos';
 import SosDetails from './pages/SosDetails';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Login from './pages/Login';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 import './App.css';
 
-function App() {
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
+function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   return (
     <>
       <Toaster theme="dark" position="bottom-right" richColors />
-      <Router>
+      {!isAuthenticated ? (
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : (
         <div className="app-layout">
           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
           
@@ -33,12 +49,23 @@ function App() {
                 <Route path="/sos/:id" element={<SosDetails />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
           </div>
         </div>
-      </Router>
+      )}
     </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 

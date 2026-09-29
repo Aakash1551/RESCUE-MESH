@@ -18,8 +18,10 @@ from ..models import (
     ActiveSosResponse,
     MarkRespondedRequest,
     DeliveryStatus,
-    EmergencyType
+    EmergencyType,
+    UserDB
 )
+from .auth import get_current_active_user
 
 router = APIRouter(prefix="/api/v1", tags=["SOS"])
 
@@ -27,7 +29,8 @@ router = APIRouter(prefix="/api/v1", tags=["SOS"])
 @router.post("/upload-sos", response_model=UploadResponse)
 async def upload_sos(
     packet: SosPacketCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_active_user)
 ):
     """Upload an SOS packet from a mesh node."""
     sos_id_str = str(packet.sos_id)
@@ -75,7 +78,8 @@ async def upload_sos(
 async def get_active_sos(
     db: Session = Depends(get_db),
     hours: int = Query(24, ge=1, le=720),
-    limit: int = Query(100, ge=1, le=5000)
+    limit: int = Query(100, ge=1, le=5000),
+    current_user: UserDB = Depends(get_current_active_user)
 ):
     """Get all active (non-responded) SOS packets."""
     time_threshold = datetime.utcnow() - timedelta(hours=hours)
@@ -98,7 +102,8 @@ async def get_active_sos(
 async def get_all_sos(
     db: Session = Depends(get_db),
     hours: int = Query(168, ge=1, le=720),
-    limit: int = Query(1000, ge=1, le=5000)
+    limit: int = Query(1000, ge=1, le=5000),
+    current_user: UserDB = Depends(get_current_active_user)
 ):
     """Get ALL SOS packets (including responded) for analytics/history."""
     time_threshold = datetime.utcnow() - timedelta(hours=hours)
@@ -119,7 +124,8 @@ async def get_all_sos(
 @router.post("/mark-responded", response_model=UploadResponse)
 async def mark_responded(
     request: MarkRespondedRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_active_user)
 ):
     """Mark an SOS packet as responded."""
     sos_id_str = str(request.sos_id)
@@ -154,7 +160,8 @@ async def mark_responded(
 @router.get("/sos/{sos_id}", response_model=SosPacketResponse)
 async def get_sos_by_id(
     sos_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_active_user)
 ):
     """Get a specific SOS packet by ID."""
     sos_id_str = str(sos_id)

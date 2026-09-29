@@ -10,6 +10,17 @@ const apiClient = axios.create({
     },
 });
 
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('mesh_admin_token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
 // SOS API endpoints
 export const sosAPI = {
     // Get all SOS packets (including responded)

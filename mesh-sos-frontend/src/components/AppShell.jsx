@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, List, PlusCircle, BarChart2, Settings, Menu, Bell, User, LogOut, ShieldAlert, Activity, CheckCircle2, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { sosAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import '../App.css'; // Relies on App.css styles
 
 export function Sidebar({ mobileOpen, setMobileOpen }) {
@@ -48,6 +49,7 @@ export function TopBar({ setMobileOpen }) {
     const notifRef = useRef(null);
     const avatarRef = useRef(null);
     const navigate = useNavigate();
+    const { logout } = useAuth();
 
     // Fetch notifications
     const fetchNotifications = async () => {
@@ -245,7 +247,7 @@ export function TopBar({ setMobileOpen }) {
                                 <Bell size={16} /> Notification Settings
                             </button>
                             <div className="dropdown-divider"></div>
-                            <button type="button" className="dropdown-menu-item text-danger" onClick={() => { setIsAvatarOpen(false); navigate('/'); }}>
+                            <button type="button" className="dropdown-menu-item text-danger" onClick={() => { setIsAvatarOpen(false); logout(); navigate('/login'); }}>
                                 <LogOut size={16} /> Logout
                             </button>
                         </div>
